@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('click', () => {
     hide(makeDD, makeSpan);
     hide(typeDD, typeSpan);
-    
+    searchDropDown.classList.add('hidden');
   });
 
   // Button 区域点击：始终切换下拉
@@ -40,8 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Arrow 图标点击：down/up toggles 下拉，× 清除
   makeSpan.addEventListener('click', e => {
     e.stopPropagation();
-    const isClear = makeSpan.textContent === '';
-    if (isClear) {
+    if (makeSpan.textContent === '') {
       // 清除选择
       makeBtn.querySelector('span').textContent = 'All makes';
       makeSpan.textContent = '';
@@ -52,9 +51,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
   typeSpan.addEventListener('click', e => {
-    e.stopPropagation();
-    const isClear = typeSpan.textContent === '';
-    if (isClear) {
+    e.stopPropagation()
+    if (typeSpan.textContent === '') {
       // 清除选择
       typeBtn.querySelector('span').textContent = 'All body types';
       typeSpan.textContent = '';
@@ -154,29 +152,40 @@ document.addEventListener('DOMContentLoaded', () => {
     return [...set];
   }
 
+  // 自动补全
   searchInput.addEventListener('input', () => {
     const val = searchInput.value.trim();
     const suggestions = getSuggestions(val);
-    // 渲染 LI
-    searchDropUl.innerHTML = suggestions
-      .map(s => `<li class="flex items-center h-9 hover:underline outline-none cursor-pointer px-2">${s}</li>`)
-      .join('');
-    // 显示/隐藏
+    searchDropUl.innerHTML = suggestions.map(s => `<li class="flex items-center h-9 hover:underline cursor-pointer px-2">${s}</li>`).join('');
     if (suggestions.length && val) searchDropDown.classList.remove('hidden'); else searchDropDown.classList.add('hidden');
+
+    // 点击建议时渲染对应列表
     searchDropUl.querySelectorAll('li').forEach(li => {
       li.addEventListener('click', () => {
-        searchInput.value = li.textContent;
+        const key = li.textContent;
+        searchInput.value = key;
+        // 筛选逻辑
+        const selMake = makeBtn.querySelector('span').textContent;
+        const selType = typeBtn.querySelector('span').textContent;
+        let filtered = carsData;
+        if (selMake !== 'All makes') filtered = filtered.filter(c => c.brand === selMake);
+        if (selType !== 'All body types') filtered = filtered.filter(c => c.type === selType);
+        filtered = filtered.filter(c => c.brand === key || c.model === key || c.type === key);
+        renderCars(filtered);
         searchDropDown.classList.add('hidden');
       });
     });
   });
 
-  // 搜索触发
+  // 点击搜索或回车
   function handleSearch() {
     const val = searchInput.value.trim().toLowerCase();
     const selMake = makeBtn.querySelector('span').textContent;
     const selType = typeBtn.querySelector('span').textContent;
-    if (!val && selMake === 'All makes' && selType === 'All body types') return;
+    if (!val && selMake === 'All makes' && selType === 'All body types') {
+      renderCars(carsData);
+      searchDropDown.classList.add('hidden'); return;
+    }
     let filtered = carsData;
     if (selMake !== 'All makes') filtered = filtered.filter(c => c.brand === selMake);
     if (selType !== 'All body types') filtered = filtered.filter(c => c.type === selType);
@@ -186,12 +195,6 @@ document.addEventListener('DOMContentLoaded', () => {
     renderCars(filtered);
     searchDropDown.classList.add('hidden');
   }
-
   searchBtn.addEventListener('click', handleSearch);
-  searchInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSearch();
-    }
-  });
+  searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(); } });
 });
